@@ -1,6 +1,6 @@
 # HSC-Store
 
-전역 상태 관리 라이브러리입니다. 직관적인 API를 제공합니다.
+간결하고 직관적인 전역 상태 관리 라이브러리입니다.
 
 ## ✨ 주요 특징
 
@@ -190,79 +190,9 @@ const useSettingsStore = createStore(
 );
 ```
 
-## 📝 API 문서
+## 🕰️ 타임트래블 디버깅
 
-### `createStore(creator)`
-
-스토어를 생성합니다. `creator` 함수는 `set` 함수를 파라미터로 받아 초기 상태와 액션을 반환합니다.
-
-### `persist(store, options)`
-
-스토어에 영구 저장 기능을 추가합니다. 새로고침 후에도 상태를 유지합니다.
-
-### `createPersistStore(creator, options)`
-
-스토어 생성과 영구 저장 기능을 한번에 적용합니다. Zustand 스타일 API.
-
-### `persistMiddleware(options)`
-
-미들웨어 패턴으로 사용할 수 있는 persist 함수입니다. Zustand와 완전 호환.
-
-### `timeTravelMiddleware(options)`
-
-상태 변화 이력을 추적하고 이전/이후 상태로 이동할 수 있는, 타임트래블 디버깅 기능을 추가합니다.
-
-- `maxHistory`: 최대 히스토리 저장 개수 (기본값: 100)
-- `enabled`: 타임트래블 활성화 여부 (기본값: true)
-
-API:
-
-- `_timeTravel.goBack()`: 이전 상태로 이동
-- `_timeTravel.goForward()`: 다음 상태로 이동
-- `_timeTravel.jumpToState(index)`: 특정 인덱스의 상태로 이동
-- `_timeTravel.getHistory()`: 전체 히스토리 데이터 가져오기
-- `_timeTravel.getCurrentIndex()`: 현재 상태 인덱스 가져오기
-- `_timeTravel.clearHistory()`: 히스토리 초기화
-
-### `computedMiddleware(options)`
-
-다른 상태에서 자동으로 계산되는 파생 상태 기능을 추가합니다.
-
-- `computed`: 계산된 속성 정의
-- `dependsOn`: 각 계산 속성이 의존하는 기본 상태 필드 정의
-
-API:
-
-- `_computed.recompute(key)`: 특정 계산 속성 재계산
-- `_computed.recomputeAll()`: 모든 계산 속성 재계산
-- `_computed.getStateWithComputed()`: 기본 상태와 계산된 상태를 모두 포함한 결과 가져오기
-- `getStateWithComputed()`: 기본 및 계산된 상태에 접근 가능한 프록시 반환
-
-### 스토어 API
-
-- `useStore()`: React 훅으로 전체 상태를 반환
-- `useStore(selector)`: 특정 부분만 선택하여 반환
-- `getState()`: 현재 상태 가져오기
-- `setState(partial)`: 상태 업데이트
-- `subscribe(listener)`: 변경 구독 (구독 해지 함수 반환)
-
-### 영구 저장 API
-
-- `persist.getOptions()`: 현재 persist 옵션 가져오기
-- `persist.rehydrate()`: 수동으로 상태 복원 실행
-- `persist.hasHydrated()`: 하이드레이션 완료 여부 확인
-- `persist.onHydrate`: 하이드레이션 완료 콜백
-- `persist.clearStorage()`: 저장된 상태 제거
-
-## 📄 라이선스
-
-MIT ©
-
-## ✅ 추가 기능들
-
-### 1. 타임트래블 디버깅 (Time Travel)
-
-상태 변화 기록을 추적하고 이전/이후 상태로 자유롭게 이동할 수 있는 기능을 제공합니다.
+상태 변화 이력을 추적하고 이전/이후 상태로 이동할 수 있는 기능을 제공합니다:
 
 ```typescript
 import { createStore, timeTravelMiddleware } from "hsc-store";
@@ -272,52 +202,58 @@ const useCounterStore = createStore(
   timeTravelMiddleware({
     maxHistory: 50, // 최대 히스토리 수 (기본값: 100)
     enabled: true, // 활성화 여부 (기본값: true)
-  })((set, get) => ({
+  })((set) => ({
     count: 0,
     increment: () => set((state) => ({ count: state.count + 1 })),
     decrement: () => set((state) => ({ count: state.count - 1 })),
   }))
 );
 
-// 디버깅 패널에서 사용하기
-function DebugPanel() {
+// 타임트래블 기능 사용하기
+function CounterWithTimeTravel() {
+  const { count, increment, decrement } = useCounterStore();
+
+  // 타임트래블 API 접근
   const timeTravel = useCounterStore.getState()._timeTravel;
   const history = timeTravel.getHistory();
   const currentIndex = timeTravel.getCurrentIndex();
 
   return (
-    <div className="debug-panel">
-      <h3>상태 히스토리 ({history.length}개)</h3>
+    <div>
+      <h1>카운터: {count}</h1>
+      <div>
+        <button onClick={increment}>증가</button>
+        <button onClick={decrement}>감소</button>
+      </div>
 
-      <div className="controls">
+      <div>
+        <h3>타임머신</h3>
         <button
           onClick={() => timeTravel.goBack()}
           disabled={currentIndex <= 0}
         >
           이전 상태
         </button>
-
         <button
           onClick={() => timeTravel.goForward()}
           disabled={currentIndex >= history.length - 1}
         >
           다음 상태
         </button>
-
-        <button onClick={() => timeTravel.clearHistory()}>
-          히스토리 초기화
-        </button>
       </div>
 
-      <div className="history-list">
+      <div>
+        <h3>히스토리</h3>
         {history.map((item, index) => (
           <div
             key={index}
-            className={`history-item ${index === currentIndex ? "active" : ""}`}
+            style={{
+              cursor: "pointer",
+              fontWeight: index === currentIndex ? "bold" : "normal",
+            }}
             onClick={() => timeTravel.jumpToState(index)}
           >
-            {new Date(item.timestamp).toLocaleTimeString()}:
-            {JSON.stringify(item.state)}
+            {index}: {JSON.stringify(item.state)}
           </div>
         ))}
       </div>
@@ -326,16 +262,16 @@ function DebugPanel() {
 }
 ```
 
-### 2. 파생 상태 (Computed State)
+## 🧮 파생 상태 (Computed State)
 
-다른 상태 값에서 자동으로 계산되는 파생 상태를 정의할 수 있습니다. 의존하는 기본 상태가 변경될 때마다 자동으로 재계산됩니다.
+다른 상태 값에서 자동으로 계산되는 파생 상태를 정의할 수 있습니다:
 
 ```typescript
 import { createStore, computedMiddleware } from "hsc-store";
 
 // 파생 상태 미들웨어 적용
 const useCartStore = createStore(
-  computedMiddleware<CartState, ComputedCartState>({
+  computedMiddleware({
     computed: {
       // 총 금액 계산
       totalPrice: (state) =>
@@ -345,16 +281,10 @@ const useCartStore = createStore(
       totalItems: (state) =>
         state.items.reduce((sum, item) => sum + item.quantity, 0),
 
-      // 10% 할인된 금액
+      // 할인된 금액
       discountedPrice: (state) =>
         state.items.reduce((sum, item) => sum + item.price * item.quantity, 0) *
         0.9,
-    },
-    // 성능 최적화를 위한 의존성 명시 (선택 사항)
-    dependsOn: {
-      totalPrice: ["items"],
-      totalItems: ["items"],
-      discountedPrice: ["items"],
     },
   })((set) => ({
     items: [],
@@ -381,45 +311,119 @@ function Cart() {
   const {
     items,
     addItem,
-    updateQuantity,
     removeItem,
-    // 자동으로 계산되는 파생 상태
     totalPrice,
-    discountedPrice,
     totalItems,
+    discountedPrice,
   } = useCartStore();
 
   return (
-    <div className="cart">
+    <div>
       <h2>장바구니 ({totalItems}개 상품)</h2>
-
-      {items.map((item) => (
-        <div key={item.id} className="cart-item">
-          {/* 아이템 렌더링 */}
-        </div>
-      ))}
-
-      <div className="cart-summary">
-        <p>총 금액: {totalPrice.toLocaleString()}원</p>
-        <p>할인 금액: {(totalPrice - discountedPrice).toLocaleString()}원</p>
-        <p>최종 금액: {discountedPrice.toLocaleString()}원</p>
+      <div>
+        {items.map((item) => (
+          <div key={item.id}>
+            {item.name} - {item.price}원 x {item.quantity}개
+            <button onClick={() => removeItem(item.id)}>삭제</button>
+          </div>
+        ))}
+      </div>
+      <div>
+        <p>총 금액: {totalPrice}원</p>
+        <p>할인 금액: {totalPrice - discountedPrice}원</p>
+        <p>최종 금액: {discountedPrice}원</p>
       </div>
     </div>
   );
 }
-
-// 특정 계산값만 강제로 재계산하기 (필요한 경우)
-useCartStore.getState()._computed.recompute("totalPrice");
-
-// 모든 계산값 재계산하기
-useCartStore.getState()._computed.recomputeAll();
-
-// 계산된 상태를 포함한 전체 상태 가져오기
-const stateWithComputed = useCartStore
-  .getState()
-  ._computed.getStateWithComputed();
-
-// 혹은 프록시를 통해 계산된 상태에 직접 접근하기
-const stateProxy = useCartStore.getStateWithComputed();
-console.log(stateProxy.totalPrice); // 계산된 값을 반환합니다
 ```
+
+## 📝 API 문서
+
+### 코어 API
+
+#### `createStore(creator)`
+
+스토어를 생성합니다. `creator` 함수는 `set` 함수를 파라미터로 받아 초기 상태와 액션을 반환합니다.
+
+#### 스토어 메서드
+
+- `useStore()`: React 훅으로 전체 상태를 반환
+- `useStore(selector)`: 특정 부분만 선택하여 반환
+- `getState()`: 현재 상태 가져오기
+- `setState(partial)`: 상태 업데이트
+- `subscribe(listener)`: 변경 구독 (구독 해지 함수 반환)
+
+### 영구 저장 API
+
+#### `persist(store, options)`
+
+스토어에 영구 저장 기능을 추가합니다.
+
+#### `createPersistStore(creator, options)`
+
+스토어 생성과 영구 저장 기능을 한번에 적용합니다.
+
+#### `persistMiddleware(options)`
+
+미들웨어 패턴으로 사용할 수 있는 persist 함수입니다.
+
+#### 영구 저장 옵션
+
+- `name`: 스토리지 키 이름 (필수)
+- `storage`: 사용할 스토리지 (기본값: localStorage)
+- `partialize`: 저장할 상태 일부 선택 함수
+- `version`: 상태 버전 (마이그레이션에 사용)
+- `migrate`: 버전 간 상태 마이그레이션 함수
+- `onRehydrateStorage`: 상태 복원 후 콜백
+- `skipHydration`: 하이드레이션 문제 방지 옵션
+
+#### 영구 저장 메서드
+
+- `persist.getOptions()`: 현재 persist 옵션 가져오기
+- `persist.rehydrate()`: 수동으로 상태 복원 실행
+- `persist.hasHydrated()`: 하이드레이션 완료 여부 확인
+- `persist.onHydrate`: 하이드레이션 완료 콜백
+- `persist.clearStorage()`: 저장된 상태 제거
+
+### 타임트래블 API
+
+#### `timeTravelMiddleware(options)`
+
+상태 변화 이력을 추적하고 이전/이후 상태로 이동할 수 있는 기능을 추가합니다.
+
+#### 타임트래블 옵션
+
+- `maxHistory`: 최대 히스토리 저장 개수 (기본값: 100)
+- `enabled`: 타임트래블 활성화 여부 (기본값: true)
+
+#### 타임트래블 메서드
+
+- `_timeTravel.goBack()`: 이전 상태로 이동
+- `_timeTravel.goForward()`: 다음 상태로 이동
+- `_timeTravel.jumpToState(index)`: 특정 인덱스의 상태로 이동
+- `_timeTravel.getHistory()`: 전체 히스토리 데이터 가져오기
+- `_timeTravel.getCurrentIndex()`: 현재 상태 인덱스 가져오기
+- `_timeTravel.clearHistory()`: 히스토리 초기화
+
+### 파생 상태 API
+
+#### `computedMiddleware(options)`
+
+다른 상태에서 자동으로 계산되는 파생 상태 기능을 추가합니다.
+
+#### 파생 상태 옵션
+
+- `computed`: 계산된 속성 정의
+- `dependsOn`: 각 계산 속성이 의존하는 기본 상태 필드 정의 (선택 사항)
+
+#### 파생 상태 메서드
+
+- `_computed.recompute(key)`: 특정 계산 속성 재계산
+- `_computed.recomputeAll()`: 모든 계산 속성 재계산
+- `_computed.getStateWithComputed()`: 기본 상태와 계산된 상태를 모두 포함한 결과 가져오기
+- `getStateWithComputed()`: 기본 및 계산된 상태에 접근 가능한 프록시 반환
+
+## 📄 라이선스
+
+MIT ©
