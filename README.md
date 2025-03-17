@@ -140,7 +140,7 @@ const usePersistedSettingsStore = persist(useSettingsStore, {
 });
 ```
 
-### Zustand 스타일 (한번에 생성)
+### 한번에 생성하기
 
 ```typescript
 import { createPersistStore } from "hsc-store";
@@ -171,24 +171,33 @@ function ThemeSwitcher() {
 }
 ```
 
-### 미들웨어 패턴 (Zustand 호환)
+### 영구 저장 API
 
-```typescript
-import { createStore, persistMiddleware } from "hsc-store";
+#### `persist(store, options)`
 
-// 미들웨어 패턴 사용
-const useSettingsStore = createStore(
-  persistMiddleware({
-    name: "settings-storage",
-    // 다른 옵션들...
-  })((set) => ({
-    theme: "light",
-    fontSize: 16,
-    setTheme: (theme) => set({ theme }),
-    setFontSize: (fontSize) => set({ fontSize }),
-  }))
-);
-```
+스토어에 영구 저장 기능을 추가합니다.
+
+#### `createPersistStore(creator, options)`
+
+스토어 생성과 영구 저장 기능을 한번에 적용합니다.
+
+#### 영구 저장 옵션
+
+- `name`: 스토리지 키 이름 (필수)
+- `storage`: 사용할 스토리지 (기본값: localStorage)
+- `partialize`: 저장할 상태 일부 선택 함수
+- `version`: 상태 버전 (마이그레이션에 사용)
+- `migrate`: 버전 간 상태 마이그레이션 함수
+- `onRehydrateStorage`: 상태 복원 후 콜백
+- `skipHydration`: 하이드레이션 문제 방지 옵션
+
+#### 영구 저장 메서드
+
+- `persist.getOptions()`: 현재 persist 옵션 가져오기
+- `persist.rehydrate()`: 수동으로 상태 복원 실행
+- `persist.hasHydrated()`: 하이드레이션 완료 여부 확인
+- `persist.onHydrate`: 하이드레이션 완료 콜백
+- `persist.clearStorage()`: 저장된 상태 제거
 
 ## 🕰️ 타임트래블 디버깅
 
@@ -363,10 +372,6 @@ function Cart() {
 #### `createPersistStore(creator, options)`
 
 스토어 생성과 영구 저장 기능을 한번에 적용합니다.
-
-#### `persistMiddleware(options)`
-
-미들웨어 패턴으로 사용할 수 있는 persist 함수입니다.
 
 #### 영구 저장 옵션
 
